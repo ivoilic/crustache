@@ -11,8 +11,9 @@
     "test": "pnpm --filter wasm-crustache run test",
     "lint": "pnpm --filter wasm-crustache run lint",
     "changeset": "changeset",
-    "changeset:version": "changeset version",
-    "changeset:publish": "changeset publish"
+    "changeset:version": "changeset version && node scripts/sync-cargo-versions.mjs",
+    "changeset:publish": "changeset publish",
+    "release": "pnpm run build && changeset publish"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.5"

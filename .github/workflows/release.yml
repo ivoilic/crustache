@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: github.repository == 'ivoilic/crustache'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        run: rustup show
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@0d096b08b4e5a7de8c28de67e11e945404e9eefa
+        with:
+          version: v0.14.0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create Release PR or Publish
+        id: changesets
+        # changesets/action v1.7.0 pinned to commit SHA for supply-chain security
+        uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf
+        with:
+          version: pnpm run changeset:version
+          publish: pnpm run release
+          commit: 'chore: release packages'
+          title: 'chore: release packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: crustache-published
+        id: crustache-published
+        if: success()
+        env:
+          PACKAGES_JSON: ${{ steps.changesets.outputs.publishedPackages }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PACKAGES_JSON:-}" ]; then
+            echo "value=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if printf '%s' "$PACKAGES_JSON" | jq -e 'type == "array" and any(.[]; .name == "crustache")' >/dev/null 2>&1; then
+            echo "value=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish crustache to crates.io
+        if: steps.crustache-published.outputs.value == 'true'
+        run: cargo publish -p crustache
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Find pull request for this commit
+        id: assoc-pr
+        if: success() && steps.changesets.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          num=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" --jq '.[0].number // empty')
+          echo "number=$num" >> "$GITHUB_OUTPUT"
+
+      - name: Comment release summary on merge PR
+        if: success() && steps.crustache-published.outputs.value == 'true' && steps.assoc-pr.outputs.number != ''
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          issue-number: ${{ steps.assoc-pr.outputs.number }}
+          body: |
+            ## Release published
+
+            Packages published from this merge:
+
+            ```json
+            ${{ steps.changesets.outputs.publishedPackages }}
+            ```
+
+            - **npm:** `wasm-crustache` (via Changesets)
+            - **crates.io:** `crustache` (`cargo publish`)
+
+            Commit: [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+            Workflow: [run #${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})

@@ -1,4 +1,4 @@
-# crustache
+# 🥸🍪 crustache
 
 Rust implementation of the Mustache template language along with a WASM version.
 
