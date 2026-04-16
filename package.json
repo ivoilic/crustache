@@ -1,0 +1,20 @@
+{
+  "name": "crustache-monorepo",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ivoilic/crustache.git"
+  },
+  "packageManager": "pnpm@10.8.1",
+  "scripts": {
+    "build": "pnpm --filter wasm-crustache run build",
+    "test": "pnpm --filter wasm-crustache run test",
+    "lint": "pnpm --filter wasm-crustache run lint",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:publish": "changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.5"
+  }
+}

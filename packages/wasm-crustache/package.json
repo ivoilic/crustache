@@ -1,0 +1,49 @@
+{
+  "name": "wasm-crustache",
+  "version": "0.1.0",
+  "description": "High-performance Mustache renderer powered by Rust and WebAssembly",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ivoilic/crustache.git",
+    "directory": "packages/wasm-crustache"
+  },
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "node ./build.mjs",
+    "build:wasm:bundler": "wasm-pack build --target bundler --out-dir pkg/bundler --out-name wasm_crustache --release",
+    "build:wasm:node": "wasm-pack build --target nodejs --out-dir pkg/node --out-name wasm_crustache --release",
+    "build:esm": "pnpm exec tsc --project tsconfig.json --module ES2022 --moduleResolution Bundler --outDir dist/esm",
+    "build:cjs": "pnpm exec tsc --project tsconfig.json --module CommonJS --moduleResolution Node --outDir dist/cjs --declaration false",
+    "build:types": "pnpm exec tsc --project tsconfig.json --emitDeclarationOnly --declarationDir dist/types --outDir dist/types",
+    "lint": "pnpm exec eslint .",
+    "test": "pnpm run build && pnpm exec vitest run"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@eslint/js": "^9.25.1",
+    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "@types/node": "^22.15.3",
+    "eslint": "^9.25.1",
+    "globals": "^16.0.0",
+    "prettier": "^3.5.3",
+    "prettier-plugin-glsl": "^0.2.2",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.30.1",
+    "vitest": "^3.1.2"
+  }
+}

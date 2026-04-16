@@ -1,0 +1,9 @@
+.cargo-local/
+node_modules/
+dist/
+pkg/
+target/
+packages/*/dist/
+packages/*/pkg/
+packages/*/target/
+packages/*/.cargo-local/
