@@ -1,7 +1,6 @@
 {
   "name": "crustache",
   "version": "0.10.0",
-  "private": true,
   "description": "Rust Mustache implementation (crates.io: crustache). Version is kept in sync with Cargo.toml via Changesets.",
   "repository": {
     "type": "git",
