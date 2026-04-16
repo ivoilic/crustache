@@ -25,7 +25,9 @@ jobs:
         run: rustup show
 
       - name: Install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+        uses: jetli/wasm-pack-action@0d096b08b4e5a7de8c28de67e11e945404e9eefa
+        with:
+          version: v0.14.0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -52,8 +54,25 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: crustache-published
+        id: crustache-published
+        if: success()
+        env:
+          PACKAGES_JSON: ${{ steps.changesets.outputs.publishedPackages }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PACKAGES_JSON:-}" ]; then
+            echo "value=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if printf '%s' "$PACKAGES_JSON" | jq -e 'type == "array" and any(.[]; .name == "crustache")' >/dev/null 2>&1; then
+            echo "value=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish crustache to crates.io
-        if: steps.changesets.outputs.published == 'true'
+        if: steps.crustache-published.outputs.value == 'true'
         run: cargo publish -p crustache
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
@@ -68,7 +87,7 @@ jobs:
           echo "number=$num" >> "$GITHUB_OUTPUT"
 
       - name: Comment release summary on merge PR
-        if: success() && steps.changesets.outputs.published == 'true' && steps.assoc-pr.outputs.number != ''
+        if: success() && steps.crustache-published.outputs.value == 'true' && steps.assoc-pr.outputs.number != ''
         uses: peter-evans/create-or-update-comment@v5
         with:
           issue-number: ${{ steps.assoc-pr.outputs.number }}
